@@ -199,7 +199,7 @@
           <div class="sidebar-brand" data-page="home"><span class="brand-mark">Z</span><span><strong>Vappie</strong><small>TEAM VERENIGINGEN</small></span></div>
           <button class="nav-close" data-action="mobile-menu" aria-label="Menu sluiten">×</button>
           <nav class="sidebar-nav">
-            ${navBtn('home','⌂','Home')}${navBtn('planning','▣','Planning')}${navBtn('occupancy','◉','Bezettingsoverzicht')}${navBtn('admin','☷','Administratie')}${navBtn('financial','€','Financieel')}
+            ${navBtn('home','⌂','Home')}${navBtn('planning','▣','Planning')}${navBtn('occupancy','◉','Bezettingsoverzicht')}${navBtn('admin','☷','Administratie')}${navBtn('financial','€','Financieel')}<button class="install-app-btn" data-action="install-app"><b>⇩</b><span>Installeer Vappie</span></button>
             <button data-action="data"><b>⇧</b><span>Data / back-up</span></button>
           </nav>
           <div class="sidebar-foot">
@@ -271,7 +271,7 @@
     return `${pageHeader('PLANNING','Wie staat waar?','Filter, wijzig of voeg diensten toe.','<button class="primary" data-action="add-shift">＋ Dienst toevoegen</button>')}
       <div class="filterbar">${selectFilter('day','Dag',DAYS)}${selectFilter('daypart','Dagdeel',PARTS)}${selectFilter('bar','Bar',bars)}${assocFilter}<button class="text-btn" data-action="clear-filters">Filters wissen</button><span class="count">${list.length} diensten</span></div>
       <div class="table-card"><div class="table-scroll"><table><thead><tr><th>Dag</th><th>Dagdeel</th><th>Bar</th><th>Vereniging</th><th>Tijd</th><th class="num">Personen</th><th></th></tr></thead><tbody>
-      ${list.map(s=>{const a=assoc(s.associationId);return `<tr><td><strong>${esc(s.day)}</strong></td><td><span class="pill">${esc(s.daypart)}</span></td><td>${esc(s.bar)}</td><td><strong>${esc(a?.planningName||a?.name||'Onbekend')}</strong><small>${esc(a?.barchef||'')}</small></td><td>${esc(s.from)} – ${esc(s.to)}</td><td class="num">${s.people}</td><td class="actions"><button data-edit-shift="${attr(s.id)}">✎</button><button data-delete-shift="${attr(s.id)}">⌫</button></td></tr>`}).join('')}</tbody></table></div></div>`;
+      ${list.map(s=>{const a=assoc(s.associationId);return `<tr><td><strong>${esc(s.day)}</strong></td><td><span class="pill">${esc(s.daypart)}</span></td><td>${esc(s.bar)}</td><td><button class="association-link" data-view-assoc="${attr(a?.id||'')}" title="Bekijk volledige gegevens van ${attr(a?.name||'deze vereniging')}"><strong>${esc(a?.planningName||a?.name||'Onbekend')}</strong><small>${esc(a?.barchef||'')}</small><em>Bekijk gegevens →</em></button></td><td>${esc(s.from)} – ${esc(s.to)}</td><td class="num">${s.people}</td><td class="actions"><button data-edit-shift="${attr(s.id)}">✎</button><button data-delete-shift="${attr(s.id)}">⌫</button></td></tr>`}).join('')}</tbody></table></div></div>`;
   }
   function selectFilter(key,label,opts){return `<label class="filter-select"><span>${label}</span><select data-filter="${key}"><option value="">Alles</option>${opts.map(o=>`<option ${filters[key]===o?'selected':''}>${esc(o)}</option>`).join('')}</select></label>`}
   function shiftSort(a,b){return DAYS.indexOf(a.day)-DAYS.indexOf(b.day)||PARTS.indexOf(a.daypart)-PARTS.indexOf(b.daypart)||String(a.bar).localeCompare(String(b.bar),'nl')}
@@ -313,12 +313,31 @@
   }
   function status(v){return `<span class="status ${String(v).toLowerCase()==='ja'?'good':'neutral'}">${esc(v||'Onbekend')}</span>`}
 
+  let deferredInstallPrompt=null;
+  window.addEventListener('beforeinstallprompt',e=>{e.preventDefault();deferredInstallPrompt=e;document.querySelectorAll('.install-app-btn').forEach(b=>b.hidden=false)});
+  window.addEventListener('appinstalled',()=>{deferredInstallPrompt=null;document.querySelectorAll('.install-app-btn').forEach(b=>b.hidden=true)});
+  function isStandalone(){return window.matchMedia('(display-mode: standalone)').matches||window.navigator.standalone===true}
+  function installApp(){
+    if(isStandalone())return alert('Vappie is al als app geïnstalleerd op dit apparaat.');
+    if(deferredInstallPrompt){
+      deferredInstallPrompt.prompt();
+      deferredInstallPrompt.userChoice.finally(()=>{deferredInstallPrompt=null});
+      return;
+    }
+    const isiOS=/iphone|ipad|ipod/i.test(navigator.userAgent);
+    const text=isiOS
+      ? '<div class="install-help"><div class="install-icon-preview"><span class="brand-mark">Z</span></div><h3>Vappie op je beginscherm</h3><p>Open Vappie in <b>Safari</b>, tik onderin op <b>Delen</b> (vierkant met pijltje omhoog) en kies <b>Zet op beginscherm</b>. Daarna opent Vappie als zelfstandige app met het gele Z-icoon.</p></div>'
+      : '<div class="install-help"><div class="install-icon-preview"><span class="brand-mark">Z</span></div><h3>Vappie installeren</h3><p>Open het browsermenu en kies <b>App installeren</b> of <b>Toevoegen aan startscherm</b>. Vappie gebruikt daarna het gele Z-icoon.</p></div>';
+    showModal('Vappie installeren',text,null,false);
+  }
+
   function bindGlobal(){
     document.querySelectorAll('[data-page]').forEach(b=>b.onclick=()=>{page=b.dataset.page; render()});
     document.getElementById('yearSelect').onchange=e=>{db.activeYear=e.target.value;save({sync:false});render()};
     document.querySelectorAll('[data-action="mobile-menu"]').forEach(b=>b.onclick=()=>document.getElementById('nav')?.classList.toggle('open'));
     document.querySelector('[data-action="new-year"]').onclick=newYear;
     document.querySelectorAll('[data-action="data"]').forEach(b=>b.onclick=dataModal);
+    document.querySelectorAll('[data-action="install-app"]').forEach(b=>{b.onclick=installApp;b.hidden=isStandalone()});
   }
   function bindHome(){
     const input=document.getElementById('mainSearch'); input.oninput=e=>{searchQuery=e.target.value; const pos=e.target.selectionStart; render(); const n=document.getElementById('mainSearch'); n.focus(); n.setSelectionRange(pos,pos)}; input.focus();
@@ -329,6 +348,7 @@
     document.querySelector('[data-action="add-shift"]').onclick=()=>shiftModal();
     document.querySelectorAll('[data-edit-shift]').forEach(b=>b.onclick=()=>shiftModal(yd().shifts.find(s=>s.id===b.dataset.editShift)));
     document.querySelectorAll('[data-delete-shift]').forEach(b=>b.onclick=()=>{if(confirm('Deze dienst verwijderen?')){yd().shifts=yd().shifts.filter(s=>s.id!==b.dataset.deleteShift);save();render()}});
+    document.querySelectorAll('[data-view-assoc]').forEach(b=>b.onclick=()=>associationDetailModal(b.dataset.viewAssoc));
   }
   function bindFinancial(){}
 
@@ -509,6 +529,17 @@
     document.querySelector('[data-action="import-excel"]').onclick=importExcelModal;
     document.querySelectorAll('[data-edit-assoc]').forEach(b=>b.onclick=()=>assocModal(yd().associations.find(a=>a.id===b.dataset.editAssoc)));
     document.querySelectorAll('[data-delete-assoc]').forEach(b=>b.onclick=()=>{const a=yd().associations.find(x=>x.id===b.dataset.deleteAssoc),n=yd().shifts.filter(s=>s.associationId===a.id).length;if(n)return alert(`Deze vereniging heeft nog ${n} diensten. Verwijder of wijzig die eerst in Planning.`);if(confirm(`${a.name} verwijderen?`)){yd().associations=yd().associations.filter(x=>x.id!==a.id);save();render()}});
+  }
+
+  function associationDetailModal(id){
+    const a=yd().associations.find(x=>x.id===id);
+    if(!a)return alert('Vereniging niet gevonden.');
+    const root=document.getElementById('modalRoot');
+    root.innerHTML=`<div class="modal-backdrop"><div class="modal wide association-detail-modal"><div class="modal-head"><div><span class="eyebrow">VOLLEDIG VERENIGINGSOVERZICHT</span><h2>${esc(a.name)}</h2></div><button id="assocDetailClose" aria-label="Sluiten">×</button></div><div class="modal-body association-detail-body">${resultHtml(a)}<div class="modal-actions"><button class="secondary" id="assocDetailCloseBottom">Sluiten</button><button class="primary" id="assocDetailEdit">✎ Administratie wijzigen</button></div></div></div></div>`;
+    const close=()=>root.innerHTML='';
+    document.getElementById('assocDetailClose').onclick=close;
+    document.getElementById('assocDetailCloseBottom').onclick=close;
+    document.getElementById('assocDetailEdit').onclick=()=>{close();assocModal(a)};
   }
 
   function showModal(title,body,onSave,wide=true){

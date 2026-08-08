@@ -196,3 +196,26 @@ table{min-width:800px}th{background:#f8f8f7;color:#4f4f4f;border-bottom:1px soli
   .mobile-login-brand{margin-bottom:33px}.mobile-login-brand .brand-mark{width:43px;height:43px;font-size:29px}.mobile-login-brand strong{font-size:24px}
   .login-panel-inner{padding:20px 17px 17px}.login-panel h1{font-size:29px}.login-panel .login-panel-inner>p{line-height:1.38}
 }
+
+/* =========================================================
+   VERENIGINGSKAART VANUIT PLANNING + PWA INSTALLATIE
+   ========================================================= */
+.association-link{appearance:none;border:0;background:transparent;padding:0;margin:0;text-align:left;color:#111;cursor:pointer;display:flex;flex-direction:column;align-items:flex-start;gap:2px;font:inherit}
+.association-link strong{font-size:14px;border-bottom:1px solid transparent;transition:.15s}
+.association-link small{color:#777;font-size:11px}
+.association-link em{font-style:normal;font-size:10px;color:#777;opacity:0;transform:translateY(-2px);transition:.15s}
+.association-link:hover strong,.association-link:focus-visible strong{border-bottom-color:#111}
+.association-link:hover em,.association-link:focus-visible em{opacity:1;transform:none}
+.association-link:focus-visible{outline:3px solid rgba(244,255,49,.7);outline-offset:4px;border-radius:3px}
+.association-detail-modal{max-width:1180px}
+.association-detail-modal .modal-head{align-items:flex-start}
+.association-detail-modal .modal-head h2{margin-top:5px}
+.association-detail-body{padding:0!important;background:#f8f7f3}
+.association-detail-body>.result-card{margin:0;border:0;border-radius:0;box-shadow:none}
+.association-detail-body>.modal-actions{background:#fff;border-top:1px solid #deddd9;padding:16px 22px;margin:0;position:sticky;bottom:0;z-index:2}
+.install-app-btn{margin-top:9px!important;border-top:1px solid #2d2d2d!important;border-radius:0!important;padding-top:20px!important;color:#d9d9d9!important}
+.install-app-btn:hover{background:#232323!important;color:#fff!important}
+.install-help{text-align:center;padding:6px 2px 12px}.install-help h3{font:24px/1.05 'Arial Black',Arial,sans-serif;margin:16px 0 8px}.install-help p{color:#666;line-height:1.55;max-width:430px;margin:0 auto}.install-icon-preview{display:flex;justify-content:center}.install-icon-preview .brand-mark{width:82px;height:82px;font-size:54px;transform:rotate(-3.5deg);box-shadow:none}
+@media(max-width:680px){
+  .association-link em{display:none}.association-link strong{font-size:13px}.association-detail-modal .result-head{display:block}.association-detail-modal .earnings{margin-top:12px;display:inline-flex}.association-detail-body>.modal-actions{display:grid;grid-template-columns:1fr;gap:8px}
+}
