@@ -125,19 +125,35 @@
   }
 
   function showLoginGate(message=''){
-    app.innerHTML=`<main class="login-screen"><section class="login-card">
-      <div class="login-brand"><span class="brand-mark">Z</span><div><strong>Vappie</strong><small>TEAM VERENIGINGEN</small></div></div>
-      <div class="hero-kicker">VEILIG AANMELDEN</div>
-      <h1>Welkom bij Vappie</h1>
-      <p>Log één keer in. Daarna onthoudt deze browser je Supabase-sessie en opent Vappie volgende keren automatisch.</p>
-      ${message?`<div class="login-message">${esc(message)}</div>`:''}
-      <form id="startupLoginForm" class="login-form">
-        <label class="field"><span>E-mailadres</span><input id="startupEmail" type="email" autocomplete="username" required placeholder="naam@voorbeeld.nl"></label>
-        <label class="field"><span>Wachtwoord</span><input id="startupPassword" type="password" autocomplete="current-password" required placeholder="••••••••"></label>
-        <button class="primary login-submit" type="submit">Inloggen bij Vappie</button>
-      </form>
-      <button class="text-btn offline-open" id="offlineOpen">Offline lokaal openen</button>
-      <small class="login-foot">Offline openen verandert niets aan je lokale gegevens. Centrale synchronisatie start weer zodra je opnieuw bent aangemeld.</small>
+    app.innerHTML=`<main class="login-screen"><section class="login-shell">
+      <aside class="login-visual">
+        <div class="login-visual-brand"><span class="brand-mark">Z</span><div><strong>Vappie</strong><small>TEAM VERENIGINGEN</small></div></div>
+        <div class="login-visual-copy">
+          <span class="login-label">ZOMERPARKFEEST · TEAM VERENIGINGEN</span>
+          <h2>Alles voor de verenigingen.<br>Op één plek.</h2>
+          <p>Planning, bezetting, administratie en financiën centraal en altijd gesynchroniseerd.</p>
+          <div class="login-feature"><i>✓</i><span>Veilig gekoppeld met Supabase</span></div>
+          <div class="login-feature"><i>✓</i><span>Lokale back-up blijft beschikbaar</span></div>
+          <div class="login-feature"><i>✓</i><span>Automatische synchronisatie</span></div>
+        </div>
+        <div class="login-visual-footer"><span class="brand-mark mini">Z</span><span>Samen maken<br>we het feest!</span></div>
+      </aside>
+      <section class="login-card login-panel">
+        <div class="login-brand mobile-login-brand"><span class="brand-mark">Z</span><div><strong>Vappie</strong><small>TEAM VERENIGINGEN</small></div></div>
+        <div class="login-panel-inner">
+          <div class="hero-kicker">VEILIG AANMELDEN</div>
+          <h1>Welkom terug</h1>
+          <p>Meld je aan om Vappie te openen. Je Supabase-sessie wordt op dit apparaat onthouden.</p>
+          ${message?`<div class="login-message">${esc(message)}</div>`:''}
+          <form id="startupLoginForm" class="login-form">
+            <label class="field"><span>E-mailadres</span><input id="startupEmail" type="email" autocomplete="username" required placeholder="naam@voorbeeld.nl"></label>
+            <label class="field"><span>Wachtwoord</span><input id="startupPassword" type="password" autocomplete="current-password" required placeholder="••••••••"></label>
+            <button class="primary login-submit" type="submit">Inloggen bij Vappie <span>→</span></button>
+          </form>
+          <button class="text-btn offline-open" id="offlineOpen">Offline lokaal openen</button>
+          <small class="login-foot">Geen verbinding? Je kunt Vappie lokaal blijven gebruiken. Synchronisatie hervat na opnieuw aanmelden.</small>
+        </div>
+      </section>
     </section></main>`;
     document.getElementById('startupLoginForm').onsubmit=startupLogin;
     document.getElementById('offlineOpen').onclick=()=>{supabaseStatus='error';render();};
