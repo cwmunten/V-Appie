@@ -1,18 +1,31 @@
-# Vappie + Supabase (veilige overgang)
+# Vappie + Supabase (project vooraf ingesteld)
 
-Deze versie blijft **altijd eerst lokaal opslaan** in dezelfde `localStorage` als de huidige Vappie. Supabase is optioneel. Zonder configuratie werkt de app daarom hetzelfde als voorheen.
+Deze versie is vooraf gekoppeld aan Supabase-project:
+`https://ngijjzcizhwoeieaelgz.supabase.co`
 
-## Supabase klaarzetten
-1. Maak een Supabase-project.
-2. Open **SQL Editor** en voer `supabase_setup.sql` uit.
-3. Maak via **Authentication > Users** minimaal één gebruiker aan voor Team Verenigingen.
-4. Deploy deze Vappie-versie op Vercel.
-5. Open Vappie > icoon **Data & back-up** > **Supabase koppelen**.
-6. Vul de **Project URL** en **Publishable key** in. Op oudere projecten werkt ook de **anon public key**. Gebruik nooit een Secret- of service_role-key.
-7. Meld aan met de Supabase-gebruiker.
-8. Kies bij de eerste synchronisatie **Lokale Vappie → Supabase**. Daarmee blijft de huidige dataset het startpunt.
+De Publishable key staat in de browsercode. Dat is toegestaan voor een Supabase Publishable key; toegang tot data wordt beveiligd met Supabase Auth + Row Level Security (RLS). Gebruik NOOIT een secret/service_role key in browsercode.
 
-Daarna worden wijzigingen eerst lokaal opgeslagen en vervolgens naar Supabase gestuurd. Iedere 2 minuten haalt Vappie de centrale dataset opnieuw op. Als Supabase niet bereikbaar is, blijven lokale gegevens staan en blijft Vappie bruikbaar.
+## Veiligheidsprincipe
+Vappie blijft altijd eerst lokaal opslaan in dezelfde localStorage key: `vappie-data-v2`.
+Als Supabase niet bereikbaar is, blijft de app lokaal bruikbaar. Synchronisatie wordt pas actief nadat je bent ingelogd én bewust een eerste synchronisatierichting kiest.
 
-## Belangrijk
-Deze eerste koppeling synchroniseert bewust één complete Vappie-dataset. Dat is de minst ingrijpende manier om de bestaande app werkend te houden. Bij veel gelijktijdige bewerkingen kan later een tweede stap worden gemaakt naar aparte Supabase-tabellen voor verenigingen, diensten en jaren.
+## Eenmalig in Supabase
+1. Open Supabase > SQL Editor.
+2. Voer `supabase_setup.sql` volledig uit.
+3. Ga naar Authentication > Users.
+4. Maak minimaal één gebruiker aan met e-mailadres + wachtwoord.
+
+## Eerste koppeling in Vappie
+1. Open Vappie.
+2. Klik rechtsboven op Data/back-up.
+3. Meld je aan met de Supabase-gebruiker.
+4. Vappie test direct of `vappie_state` en RLS bereikbaar zijn.
+5. Kies op je bestaande, gevulde Vappie: **Lokale Vappie → Supabase**.
+6. Open daarna eventueel een tweede browser/apparaat, log in en kies **Supabase → deze Vappie**.
+
+## Synchronisatie
+- Iedere wijziging wordt direct lokaal opgeslagen.
+- Als Supabase gekoppeld is, wordt de wijziging kort daarna naar Supabase gestuurd.
+- Iedere 2 minuten haalt Vappie centrale gegevens opnieuw op.
+- Bij een storing blijft lokale data staan.
+- Gebruik voor belangrijke wijzigingen ook de ingebouwde JSON-back-up.

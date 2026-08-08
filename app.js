@@ -5,6 +5,10 @@
   const SUPABASE_LINKED_KEY = 'vappie-supabase-linked-v1';
   const SUPABASE_DIRTY_KEY = 'vappie-supabase-dirty-v1';
   const SUPABASE_ROW_ID = 'main';
+  const DEFAULT_SUPABASE_CONFIG = Object.freeze({
+    url: 'https://ngijjzcizhwoeieaelgz.supabase.co',
+    key: 'sb_publishable_fQFpxmC6XeNeJ0yOv52S7g_VIbs2jLg'
+  });
   const DAYS = ['Woensdag','Donderdag','Vrijdag','Zaterdag','Zondag'];
   const PARTS = ['Middag','Avond'];
   const clone = x => JSON.parse(JSON.stringify(x));
@@ -25,7 +29,7 @@
   const app=document.getElementById('app');
 
   let supabaseClient=null, supabaseUser=null, supabaseStatus='local', supabasePushTimer=null;
-  const getSupabaseConfig=()=>{try{return JSON.parse(localStorage.getItem(SUPABASE_CONFIG_KEY))||null}catch{return null}};
+  const getSupabaseConfig=()=>{try{return JSON.parse(localStorage.getItem(SUPABASE_CONFIG_KEY))||DEFAULT_SUPABASE_CONFIG}catch{return DEFAULT_SUPABASE_CONFIG}};
   const isSupabaseLinked=()=>localStorage.getItem(SUPABASE_LINKED_KEY)==='1';
   const isSupabaseDirty=()=>localStorage.getItem(SUPABASE_DIRTY_KEY)==='1';
   const setSupabaseDirty=v=>v?localStorage.setItem(SUPABASE_DIRTY_KEY,'1'):localStorage.removeItem(SUPABASE_DIRTY_KEY);
@@ -457,10 +461,10 @@
       ${field('Supabase Project URL',`<input id="sbUrl" placeholder="https://xxxx.supabase.co">`,true)}
       ${field('Supabase Publishable / anon public key',`<input id="sbKey" type="password" placeholder="sb_publishable_... of anon public key">`,true)}
       <button class="secondary" id="sbSaveConfig">Koppeling opslaan & testen</button></div>`:
-      !supabaseUser?`<div class="supabase-box"><h3>Supabase aanmelden</h3><p>De configuratie staat op dit apparaat. Meld je aan met een gebruiker uit Supabase Auth.</p>
+      !supabaseUser?`<div class="supabase-box"><h3>Supabase aanmelden</h3><p>Jouw Vappie is al gekoppeld aan het Supabase-project <b>ngijjzcizhwoeieaelgz</b>. Meld je aan met een gebruiker uit Supabase Auth. Vappie controleert daarna automatisch of database en beveiligingsregels correct werken.</p>
       ${field('E-mail',`<input id="sbEmail" type="email" autocomplete="username">`,true)}
       ${field('Wachtwoord',`<input id="sbPassword" type="password" autocomplete="current-password">`,true)}
-      <div class="data-actions"><button class="primary" id="sbLogin">Aanmelden</button><button class="secondary" id="sbClearConfig">Configuratie wissen</button></div></div>`:
+      <div class="data-actions"><button class="primary" id="sbLogin">Aanmelden & verbinding testen</button></div></div>`:
       !isSupabaseLinked()?`<div class="supabase-box"><h3>Eerste synchronisatie</h3><p>Kies bewust welke gegevens het startpunt zijn. Zo wordt je huidige werk nooit automatisch overschreven.</p><div class="data-actions"><button class="primary" id="sbLocalFirst">Lokale Vappie → Supabase</button><button class="secondary" id="sbRemoteFirst">Supabase → deze Vappie</button></div><button class="text-btn" id="sbLogout">Uitloggen</button></div>`:
       `<div class="supabase-box"><h3>Supabase synchronisatie</h3><p>Wijzigingen worden eerst lokaal opgeslagen en daarna naar Supabase gestuurd. Iedere 2 minuten haalt Vappie ook de centrale gegevens opnieuw op.</p><div class="data-actions"><button class="primary" id="sbSyncNow">↻ Nu synchroniseren</button><button class="secondary" id="sbStopLink">Koppeling stoppen</button><button class="secondary" id="sbLogout">Uitloggen</button></div></div>`;
     const body=`<div class="data-panel">${supabaseStatusHtml()}<div class="notice"><b>✓</b><div><strong>Lokale opslag blijft de veiligheidsbasis.</strong><p>Ook bij een storing van Supabase blijft Vappie op dit apparaat werken. Maak daarnaast regelmatig een back-up.</p></div></div>
@@ -503,12 +507,25 @@
       dataModal();
     }catch(err){alert(`Supabase-configuratie kon niet worden opgeslagen: ${err?.message||err}`);}
   }
+  async function testSupabaseAccess(){
+    if(!supabaseClient||!supabaseUser)throw new Error('Niet aangemeld bij Supabase.');
+    const {error}=await supabaseClient.from('vappie_state').select('id').limit(1);
+    if(error)throw new Error(`Databasecontrole mislukt: ${error.message}. Controleer of supabase_setup.sql is uitgevoerd en RLS correct staat.`);
+    return true;
+  }
   async function supabaseLogin(){
     try{
       if(!supabaseClient){await initSupabase();if(!supabaseClient)throw new Error('Supabase is niet geconfigureerd.');}
       const {data,error}=await supabaseClient.auth.signInWithPassword({email:val('sbEmail').trim(),password:val('sbPassword')});
-      if(error)throw error;supabaseUser=data.user;supabaseStatus='connected';alert('Aangemeld. Kies nu welke data het startpunt is.');dataModal();
-    }catch(err){alert(`Aanmelden mislukt: ${err?.message||err}`);}
+      if(error)throw error;
+      supabaseUser=data.user;supabaseStatus='connected';
+      await testSupabaseAccess();
+      alert('Aangemeld en databaseverbinding getest. Kies nu welke data het startpunt is.');
+      dataModal();
+    }catch(err){
+      supabaseStatus='error';
+      alert(`Aanmelden/verbindingstest mislukt: ${err?.message||err}`);
+    }
   }
   async function supabaseLogout(){
     try{if(supabaseClient)await supabaseClient.auth.signOut();}catch{}supabaseUser=null;localStorage.removeItem(SUPABASE_LINKED_KEY);setSupabaseDirty(false);supabaseStatus='configured';dataModal();
