@@ -126,7 +126,7 @@
 
   function showLoginGate(message=''){
     app.innerHTML=`<main class="login-screen"><section class="login-card">
-      <div class="login-brand"><span class="brand-mark">V</span><div><strong>Vappie</strong><small>TEAM VERENIGINGEN</small></div></div>
+      <div class="login-brand"><span class="brand-mark">Z</span><div><strong>Vappie</strong><small>TEAM VERENIGINGEN</small></div></div>
       <div class="hero-kicker">VEILIG AANMELDEN</div>
       <h1>Welkom bij Vappie</h1>
       <p>Log één keer in. Daarna onthoudt deze browser je Supabase-sessie en opent Vappie volgende keren automatisch.</p>
@@ -176,21 +176,34 @@
   const sortedYears=()=>Object.keys(db.years).sort((a,b)=>Number(b)-Number(a));
 
   function render(){
+    const userEmail=supabaseUser?.email||'Vappie gebruiker';
     app.innerHTML=`
-      <header class="topbar">
-        <button class="mobile-menu" data-action="mobile-menu">☰</button>
-        <button class="brand" data-page="home"><span class="brand-mark">V</span><span><strong>Vappie</strong><small>TEAM VERENIGINGEN</small></span></button>
-        <nav class="nav" id="nav">
-          ${navBtn('home','⌂','Zoeken')}${navBtn('planning','▣','Planning')}${navBtn('financial','€','Financieel')}${navBtn('occupancy','◉','Bezetting')}${navBtn('admin','☷','Administratie')}
-        </nav>
-        <div class="top-actions">
-          <button class="sync-chip ${syncClass()}" id="syncChip" data-action="data" title="Supabase synchronisatiestatus"><span></span><b>${esc(syncLabel())}</b></button>
-          <div class="year-select">▦ <select id="yearSelect">${sortedYears().map(y=>`<option ${y===db.activeYear?'selected':''}>${esc(y)}</option>`).join('')}</select></div>
-          <button class="icon-btn" data-action="new-year" title="Nieuw jaar">＋</button>
-          <button class="icon-btn" data-action="data" title="Data en back-up">◫</button>
-        </div>
-      </header>
-      <main class="${page==='home'?'home-main':'main'}">${renderPage()}</main>
+      <div class="dashboard-shell">
+        <aside class="sidebar" id="nav">
+          <div class="sidebar-brand" data-page="home"><span class="brand-mark">Z</span><span><strong>Vappie</strong><small>TEAM VERENIGINGEN</small></span></div>
+          <button class="nav-close" data-action="mobile-menu" aria-label="Menu sluiten">×</button>
+          <nav class="sidebar-nav">
+            ${navBtn('home','⌂','Home')}${navBtn('planning','▣','Planning')}${navBtn('occupancy','◉','Bezettingsoverzicht')}${navBtn('admin','☷','Administratie')}${navBtn('financial','€','Financieel')}
+            <button data-action="data"><b>⇧</b><span>Data / back-up</span></button>
+          </nav>
+          <div class="sidebar-foot">
+            <div><strong>Vappie</strong> · ${esc(db.activeYear)}</div>
+            <small>© Zomerparkfeest Venlo</small>
+            <div class="sidebar-tagline"><span class="brand-mark mini">Z</span><b>Samen maken<br>we het feest!</b></div>
+          </div>
+        </aside>
+        <section class="workspace">
+          <header class="workspace-topbar">
+            <button class="mobile-menu" data-action="mobile-menu" aria-label="Menu openen">☰</button>
+            <button class="sync-chip ${syncClass()}" id="syncChip" data-action="data" title="Supabase synchronisatiestatus"><span></span><b>${esc(syncLabel())}</b></button>
+            <div class="topbar-spacer"></div>
+            <div class="year-select compact">▦ <select id="yearSelect">${sortedYears().map(y=>`<option ${y===db.activeYear?'selected':''}>${esc(y)}</option>`).join('')}</select></div>
+            <button class="icon-btn" data-action="new-year" title="Nieuw jaar">＋</button>
+            <button class="user-chip" data-action="data" title="Account en synchronisatie"><span class="user-avatar">●</span><span>${esc(userEmail)}</span></button>
+          </header>
+          <main class="workspace-main ${page==='home'?'home-main':'main'}">${renderPage()}</main>
+        </section>
+      </div>
       <div id="modalRoot"></div>`;
     bindGlobal();
     if(page==='home') bindHome();
@@ -198,7 +211,7 @@
     if(page==='financial') bindFinancial();
     if(page==='admin') bindAdmin();
   }
-  function navBtn(id,icon,label){return `<button data-page="${id}" class="${page===id?'active':''}"><b>${icon}</b>${label}</button>`}
+  function navBtn(id,icon,label){return `<button data-page="${id}" class="${page===id?'active':''}"><b>${icon}</b><span>${label}</span></button>`}
   function renderPage(){ return page==='home'?homeHtml():page==='planning'?planningHtml():page==='financial'?financialHtml():page==='occupancy'?occupancyHtml():adminHtml(); }
 
   function homeHtml(){
@@ -287,7 +300,7 @@
   function bindGlobal(){
     document.querySelectorAll('[data-page]').forEach(b=>b.onclick=()=>{page=b.dataset.page; render()});
     document.getElementById('yearSelect').onchange=e=>{db.activeYear=e.target.value;save({sync:false});render()};
-    document.querySelector('[data-action="mobile-menu"]').onclick=()=>document.getElementById('nav').classList.toggle('open');
+    document.querySelectorAll('[data-action="mobile-menu"]').forEach(b=>b.onclick=()=>document.getElementById('nav')?.classList.toggle('open'));
     document.querySelector('[data-action="new-year"]').onclick=newYear;
     document.querySelectorAll('[data-action="data"]').forEach(b=>b.onclick=dataModal);
   }
@@ -366,7 +379,7 @@
     if(!w) return alert('Het printvenster is geblokkeerd door de browser. Sta pop-ups voor Vappie toe en probeer opnieuw.');
     w.document.write(`<!doctype html><html lang="nl"><head><meta charset="utf-8"><title>Vappie rapport ${esc(db.activeYear)}</title><style>
       *{box-sizing:border-box}body{font-family:Arial,sans-serif;color:#171717;margin:0;background:#fff}main{padding:18px}.report-top{display:flex;justify-content:space-between;align-items:flex-end;border-bottom:5px solid #171717;padding-bottom:10px;margin-bottom:14px}.logo{font:900 30px Arial Black,Arial,sans-serif;text-transform:uppercase}.logo i{font-style:normal;background:#ff3f93;padding:3px 8px;margin-right:8px}.meta{text-align:right;color:#666;font-size:10px}.summary{display:flex;justify-content:space-between;background:#f3e800;padding:9px 12px;margin-bottom:14px;font-weight:700;font-size:11px}.report-table{width:100%;border-collapse:collapse;table-layout:fixed;font-size:8px}.report-table th{background:#171717;color:#fff;text-align:left;padding:6px 5px;font-size:7px;text-transform:uppercase;letter-spacing:.3px}.report-table td{padding:6px 5px;border:1px solid #ddd;vertical-align:top;word-break:break-word}.report-table th:nth-child(1){width:11%}.report-table th:nth-child(2){width:8%}.report-table th:nth-child(3){width:7%}.report-table th:nth-child(4){width:10%}.report-table th:nth-child(n+5):nth-child(-n+9){width:9%}.report-table th:nth-child(10){width:7%}.report-table th:nth-child(11){width:11%}.service{padding:0 0 5px;margin-bottom:5px;border-bottom:1px dotted #bbb;line-height:1.25}.service:last-child{border-bottom:0;margin-bottom:0}.income{font-weight:800;white-space:nowrap}.day-cell{background:#fcfbf7}@media print{main{padding:0}.report-top{margin-top:0}.report-table tr{break-inside:avoid}@page{size:A3 landscape;margin:7mm}}
-    </style></head><body><main><header class="report-top"><div class="logo"><i>V</i>Vappie</div><div class="meta">Zomerparkfeest · ${esc(db.activeYear)}<br>Gegenereerd: ${esc(generated)}</div></header><div class="summary"><span>${rows.length} vereniging${rows.length===1?'':'en'}</span><span>Totaal inkomsten: ${money(total)}</span></div><table class="report-table"><thead><tr><th>Naam vereniging</th><th>Barchef</th><th>Telefoon</th><th>E-mail</th>${DAYS.map(d=>`<th>${d}</th>`).join('')}<th>Inkomsten</th><th>Extra info</th></tr></thead><tbody>${bodyRows}</tbody></table></main><script>window.addEventListener('load',()=>setTimeout(()=>window.print(),150));<\/script></body></html>`);
+    </style></head><body><main><header class="report-top"><div class="logo"><i>Z</i>Vappie</div><div class="meta">Zomerparkfeest · ${esc(db.activeYear)}<br>Gegenereerd: ${esc(generated)}</div></header><div class="summary"><span>${rows.length} vereniging${rows.length===1?'':'en'}</span><span>Totaal inkomsten: ${money(total)}</span></div><table class="report-table"><thead><tr><th>Naam vereniging</th><th>Barchef</th><th>Telefoon</th><th>E-mail</th>${DAYS.map(d=>`<th>${d}</th>`).join('')}<th>Inkomsten</th><th>Extra info</th></tr></thead><tbody>${bodyRows}</tbody></table></main><script>window.addEventListener('load',()=>setTimeout(()=>window.print(),150));<\/script></body></html>`);
     w.document.close();
   }
 
