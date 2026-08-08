@@ -34,11 +34,29 @@
   const isSupabaseDirty=()=>localStorage.getItem(SUPABASE_DIRTY_KEY)==='1';
   const setSupabaseDirty=v=>v?localStorage.setItem(SUPABASE_DIRTY_KEY,'1'):localStorage.removeItem(SUPABASE_DIRTY_KEY);
   const validRemoteData=x=>x&&typeof x==='object'&&x.years&&typeof x.years==='object';
+  let lastSyncAt=null;
+  function syncLabel(){
+    if(!supabaseUser)return 'Niet aangemeld';
+    if(!isSupabaseLinked())return 'Aangemeld';
+    if(supabaseStatus==='syncing'||isSupabaseDirty())return 'Synchroniseren…';
+    if(supabaseStatus==='error')return 'Offline · lokaal';
+    return 'Gesynchroniseerd';
+  }
+  function syncClass(){return !supabaseUser?'neutral':supabaseStatus==='error'?'bad':(supabaseStatus==='syncing'||isSupabaseDirty())?'busy':'ok'}
+  function updateSyncChip(){
+    const chip=document.getElementById('syncChip');
+    if(!chip)return;
+    chip.className=`sync-chip ${syncClass()}`;
+    chip.innerHTML=`<span></span><b>${esc(syncLabel())}</b>`;
+    chip.title=lastSyncAt?`Laatste synchronisatie: ${lastSyncAt.toLocaleTimeString('nl-NL',{hour:'2-digit',minute:'2-digit',second:'2-digit'})}`:'Supabase synchronisatiestatus';
+  }
 
   function save({sync=true}={}){
     localStorage.setItem(STORAGE_KEY,JSON.stringify(db));
     if(sync&&isSupabaseLinked()){
       setSupabaseDirty(true);
+      supabaseStatus='syncing';
+      updateSyncChip();
       queueRemotePush();
     }
   }
@@ -49,11 +67,11 @@
   }
   async function pushRemote(){
     if(!supabaseClient||!supabaseUser)throw new Error('Niet aangemeld bij Supabase.');
-    supabaseStatus='syncing';
+    supabaseStatus='syncing'; updateSyncChip();
     const payload=clone(db);
     const {error}=await supabaseClient.from('vappie_state').upsert({id:SUPABASE_ROW_ID,data:payload,updated_by:supabaseUser.id,updated_at:new Date().toISOString()},{onConflict:'id'});
-    if(error){supabaseStatus='error';throw error;}
-    setSupabaseDirty(false); supabaseStatus='connected';
+    if(error){supabaseStatus='error';updateSyncChip();throw error;}
+    setSupabaseDirty(false); supabaseStatus='connected'; lastSyncAt=new Date(); updateSyncChip();
     return true;
   }
   async function pullRemote({renderAfter=false,force=false}={}){
@@ -61,15 +79,15 @@
     if(isSupabaseDirty()&&!force){
       try{await pushRemote()}catch(err){console.warn('Lokale wijzigingen konden nog niet naar Supabase; ophalen overgeslagen.',err);return false;}
     }
-    supabaseStatus='syncing';
+    supabaseStatus='syncing'; updateSyncChip();
     const {data,error}=await supabaseClient.from('vappie_state').select('data,updated_at').eq('id',SUPABASE_ROW_ID).maybeSingle();
-    if(error){supabaseStatus='error';throw error;}
-    if(!data||!validRemoteData(data.data)){supabaseStatus='connected';return false;}
+    if(error){supabaseStatus='error';updateSyncChip();throw error;}
+    if(!data||!validRemoteData(data.data)){supabaseStatus='connected';lastSyncAt=new Date();updateSyncChip();return false;}
     const localYear=db.activeYear;
     db=clone(data.data);
     if(localYear&&db.years[localYear])db.activeYear=localYear;
     localStorage.setItem(STORAGE_KEY,JSON.stringify(db));
-    setSupabaseDirty(false); supabaseStatus='connected';
+    setSupabaseDirty(false); supabaseStatus='connected'; lastSyncAt=new Date(); updateSyncChip();
     if(renderAfter)render();
     return true;
   }
@@ -85,18 +103,73 @@
   }
   async function initSupabase(){
     const cfg=getSupabaseConfig();
-    if(!cfg?.url||!cfg?.key){supabaseStatus='local';return;}
+    if(!cfg?.url||!cfg?.key){supabaseStatus='local';return false;}
     try{
       await loadSupabaseLibrary();
       supabaseClient=window.supabase.createClient(cfg.url,cfg.key,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}});
       const {data:{session}}=await supabaseClient.auth.getSession();
       supabaseUser=session?.user||null;
       supabaseStatus=supabaseUser?'connected':'configured';
-      supabaseClient.auth.onAuthStateChange((_event,sessionNow)=>{supabaseUser=sessionNow?.user||null;supabaseStatus=supabaseUser?'connected':'configured';});
-      if(supabaseUser&&isSupabaseLinked()){
-        try{await pullRemote({renderAfter:true})}catch(err){console.warn('Supabase start-sync mislukt; lokale Vappie blijft actief.',err);supabaseStatus='error';render();}
-      }else render();
-    }catch(err){console.warn('Supabase initialisatie mislukt; lokale Vappie blijft actief.',err);supabaseStatus='error';render();}
+      supabaseClient.auth.onAuthStateChange((event,sessionNow)=>{
+        supabaseUser=sessionNow?.user||null;
+        supabaseStatus=supabaseUser?'connected':'configured';
+        if(event==='SIGNED_OUT') showLoginGate();
+        else updateSyncChip();
+      });
+      return true;
+    }catch(err){
+      console.warn('Supabase initialisatie mislukt; lokale Vappie blijft beschikbaar.',err);
+      supabaseStatus='error';
+      return false;
+    }
+  }
+
+  function showLoginGate(message=''){
+    app.innerHTML=`<main class="login-screen"><section class="login-card">
+      <div class="login-brand"><span class="brand-mark">V</span><div><strong>Vappie</strong><small>TEAM VERENIGINGEN</small></div></div>
+      <div class="hero-kicker">VEILIG AANMELDEN</div>
+      <h1>Welkom bij Vappie</h1>
+      <p>Log één keer in. Daarna onthoudt deze browser je Supabase-sessie en opent Vappie volgende keren automatisch.</p>
+      ${message?`<div class="login-message">${esc(message)}</div>`:''}
+      <form id="startupLoginForm" class="login-form">
+        <label class="field"><span>E-mailadres</span><input id="startupEmail" type="email" autocomplete="username" required placeholder="naam@voorbeeld.nl"></label>
+        <label class="field"><span>Wachtwoord</span><input id="startupPassword" type="password" autocomplete="current-password" required placeholder="••••••••"></label>
+        <button class="primary login-submit" type="submit">Inloggen bij Vappie</button>
+      </form>
+      <button class="text-btn offline-open" id="offlineOpen">Offline lokaal openen</button>
+      <small class="login-foot">Offline openen verandert niets aan je lokale gegevens. Centrale synchronisatie start weer zodra je opnieuw bent aangemeld.</small>
+    </section></main>`;
+    document.getElementById('startupLoginForm').onsubmit=startupLogin;
+    document.getElementById('offlineOpen').onclick=()=>{supabaseStatus='error';render();};
+  }
+
+  async function startupLogin(e){
+    e.preventDefault();
+    const btn=e.currentTarget.querySelector('button[type="submit"]');
+    const email=document.getElementById('startupEmail').value.trim();
+    const password=document.getElementById('startupPassword').value;
+    btn.disabled=true;btn.textContent='Aanmelden…';
+    try{
+      if(!supabaseClient){const ok=await initSupabase();if(!ok||!supabaseClient)throw new Error('Supabase kon niet worden bereikt.');}
+      const {data,error}=await supabaseClient.auth.signInWithPassword({email,password});
+      if(error)throw error;
+      supabaseUser=data.user; supabaseStatus='connected';
+      await testSupabaseAccess();
+      if(isSupabaseLinked()){
+        try{await pullRemote();}catch(err){console.warn('Startsync mislukt; lokale gegevens blijven beschikbaar.',err);}
+      }
+      render();
+    }catch(err){showLoginGate(`Inloggen mislukt: ${err?.message||err}`);}
+  }
+
+  async function boot(){
+    const available=await initSupabase();
+    if(!available){showLoginGate('Supabase is momenteel niet bereikbaar. Je kunt eventueel offline lokaal verder werken.');return;}
+    if(!supabaseUser){showLoginGate();return;}
+    if(isSupabaseLinked()){
+      try{await pullRemote();}catch(err){console.warn('Supabase start-sync mislukt; lokale Vappie blijft actief.',err);supabaseStatus='error';}
+    }
+    render();
   }
   const yd=()=>db.years[db.activeYear];
   const assoc=id=>yd().associations.find(a=>a.id===id);
@@ -111,6 +184,7 @@
           ${navBtn('home','⌂','Zoeken')}${navBtn('planning','▣','Planning')}${navBtn('financial','€','Financieel')}${navBtn('occupancy','◉','Bezetting')}${navBtn('admin','☷','Administratie')}
         </nav>
         <div class="top-actions">
+          <button class="sync-chip ${syncClass()}" id="syncChip" data-action="data" title="Supabase synchronisatiestatus"><span></span><b>${esc(syncLabel())}</b></button>
           <div class="year-select">▦ <select id="yearSelect">${sortedYears().map(y=>`<option ${y===db.activeYear?'selected':''}>${esc(y)}</option>`).join('')}</select></div>
           <button class="icon-btn" data-action="new-year" title="Nieuw jaar">＋</button>
           <button class="icon-btn" data-action="data" title="Data en back-up">◫</button>
@@ -215,7 +289,7 @@
     document.getElementById('yearSelect').onchange=e=>{db.activeYear=e.target.value;save({sync:false});render()};
     document.querySelector('[data-action="mobile-menu"]').onclick=()=>document.getElementById('nav').classList.toggle('open');
     document.querySelector('[data-action="new-year"]').onclick=newYear;
-    document.querySelector('[data-action="data"]').onclick=dataModal;
+    document.querySelectorAll('[data-action="data"]').forEach(b=>b.onclick=dataModal);
   }
   function bindHome(){
     const input=document.getElementById('mainSearch'); input.oninput=e=>{searchQuery=e.target.value; const pos=e.target.selectionStart; render(); const n=document.getElementById('mainSearch'); n.focus(); n.setSelectionRange(pos,pos)}; input.focus();
@@ -528,7 +602,10 @@
     }
   }
   async function supabaseLogout(){
-    try{if(supabaseClient)await supabaseClient.auth.signOut();}catch{}supabaseUser=null;localStorage.removeItem(SUPABASE_LINKED_KEY);setSupabaseDirty(false);supabaseStatus='configured';dataModal();
+    try{if(supabaseClient)await supabaseClient.auth.signOut();}catch{}
+    supabaseUser=null;setSupabaseDirty(false);supabaseStatus='configured';
+    document.getElementById('modalRoot')?.remove();
+    showLoginGate('Je bent uitgelogd.');
   }
   function clearSupabaseConfig(){
     if(!confirm('Supabase-configuratie van dit apparaat wissen? De lokale Vappie-data blijven behouden.'))return;
@@ -573,7 +650,6 @@
     }catch(err){console.warn('Automatisch verversen overgeslagen; lokale Vappie blijft actief:',err);}
   }
 
-  render();
-  initSupabase();
+  boot();
   setInterval(autoRefresh,120000);
 })();

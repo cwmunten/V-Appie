@@ -44,3 +44,14 @@
 
 /* Supabase veilige koppeling */
 .sync-status{display:flex;gap:10px;align-items:center;border:1px solid #ddd;padding:12px 14px;margin-bottom:14px;background:#fafafa}.sync-status .sync-dot{width:10px;height:10px;border-radius:50%;background:#999;flex:0 0 10px}.sync-status.ok .sync-dot{background:#16a34a}.sync-status.bad .sync-dot{background:#dc2626}.sync-status strong,.sync-status small{display:block}.sync-status small{margin-top:2px;color:#666}.supabase-box{margin-top:18px;padding-top:16px;border-top:2px solid #171717}.supabase-box h3{margin:0 0 5px;font-size:18px}.supabase-box p{margin:0 0 14px;color:#666;line-height:1.45}.supabase-box .field{margin-bottom:10px}
+
+/* Vappie login + zichtbare synchronisatiestatus */
+.sync-chip{border:1px solid #3b3b3b;background:#222;color:#fff;border-radius:999px;padding:8px 11px;display:flex;align-items:center;gap:7px;cursor:pointer;white-space:nowrap;font-size:11px}
+.sync-chip span{width:9px;height:9px;border-radius:50%;background:#999;display:block;flex:0 0 9px}
+.sync-chip.ok span{background:#22c55e}.sync-chip.busy span{background:#f59e0b;animation:vappiePulse 1s infinite}.sync-chip.bad span{background:#ef4444}.sync-chip.neutral span{background:#999}
+@keyframes vappiePulse{50%{opacity:.35}}
+.login-screen{min-height:100vh;display:grid;place-items:center;padding:24px;background:linear-gradient(135deg,#f4f2ec 0%,#fffdf1 100%)}
+.login-card{width:min(520px,100%);background:#fff;border:1px solid var(--line);box-shadow:12px 12px 0 var(--pink);padding:38px}
+.login-brand{display:flex;align-items:center;gap:12px;margin-bottom:34px}.login-brand strong{display:block;font:24px/1 'Arial Black',Arial,sans-serif}.login-brand small{font-size:9px;letter-spacing:1.5px;color:#777}
+.login-card h1{font:42px/.98 'Arial Black',Arial,sans-serif;text-transform:uppercase;letter-spacing:-1.3px;margin:15px 0 12px}.login-card>p{color:var(--muted);line-height:1.5;margin:0 0 24px}.login-form{display:grid;gap:15px}.login-submit{width:100%;margin-top:4px;padding:15px}.login-message{background:#fff0f0;border:1px solid #efb4b4;color:#8f1e1e;padding:12px 14px;margin:0 0 18px;line-height:1.4}.offline-open{display:block;margin:18px auto 4px}.login-foot{display:block;text-align:center;color:#777;line-height:1.4}
+@media(max-width:820px){.sync-chip b{display:none}.sync-chip{padding:9px}.login-card{padding:26px}.login-card h1{font-size:34px}}
