@@ -1,0 +1,9 @@
+VAPPIE v31 VERIFICATIE
+======================
+OK - enhancements.js
+OK - service-worker.js
+OK - Meldingen menu
+OK - Home laatste melding
+OK - Velden
+OK - App badge
+OK - Read receipts
